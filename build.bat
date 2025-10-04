@@ -1,28 +1,18 @@
 @echo off
-setlocal enabledelayedexpansion
-
 echo ===== Diamond Rush Build Script =====
-
-:: Check for CMake
-where cmake >nul 2>nul
-if %ERRORLEVEL% neq 0 (
-    echo ERROR: CMake not found. Please install CMake and add it to your PATH.
-    exit /b 1
-)
-
-:: Set build type based on argument
-set BUILD_TYPE=Debug
-if "%1"=="release" set BUILD_TYPE=Release
 
 :: Create build directory if it doesn't exist
 if not exist build mkdir build
 
-:: Configure and build the project
-echo Configuring project with CMake...
+:: Configure and build
 cd build
-cmake -DCMAKE_BUILD_TYPE=%BUILD_TYPE% -DBUILD_DEBUG=%BUILD_TYPE% ..
-if %ERRORLEVEL% neq 0 (
-    echo ERROR: CMake configuration failed.
+cmake -G "MinGW Makefiles" ..
+cmake --build .
+
+echo Build completed successfully!
+echo Run the game with: .\DiamondRush.exe
+
+cd ..
     exit /b 1
 )
 

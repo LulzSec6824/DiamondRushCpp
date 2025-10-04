@@ -1,145 +1,197 @@
 #include "AssetManager.h"
 #include <iostream>
-#include <fstream>
 
-AssetManager& AssetManager::GetInstance() {
-    static AssetManager instance;
-    return instance;
+AssetManager::~AssetManager() {
+    UnloadAll();
 }
 
+// Texture management
 void AssetManager::LoadTexture(const std::string& name, const std::string& filePath) {
+    if (textures.find(name) != textures.end()) {
+        ::UnloadTexture(textures[name]);
+    }
     textures[name] = ::LoadTexture(filePath.c_str());
 }
 
 Texture2D AssetManager::GetTexture(const std::string& name) {
-    if (!HasTexture(name)) {
-        std::cerr << "Texture not found: " << name << std::endl;
-        return { 0 }; // Return empty texture
+    if (textures.find(name) != textures.end()) {
+        return textures[name];
     }
-    return textures[name];
+    std::cerr << "Texture not found: " << name << std::endl;
+    return { 0 };
 }
 
 bool AssetManager::HasTexture(const std::string& name) const {
     return textures.find(name) != textures.end();
 }
 
+// Sprite sheet management
 void AssetManager::LoadSpriteSheet(const std::string& name, const std::string& filePath, int frameWidth, int frameHeight) {
-    SpriteSheetInfo info;
-    info.texture = ::LoadTexture(filePath.c_str());
-    info.frameWidth = frameWidth;
-    info.frameHeight = frameHeight;
-    info.columns = info.texture.width / frameWidth;
-    info.rows = info.texture.height / frameHeight;
-    
-    spriteSheets[name] = info;
+    LoadTexture(name, filePath);
+    spriteSheetInfo[name] = { frameWidth, frameHeight };
 }
 
 Rectangle AssetManager::GetSpriteRect(const std::string& sheetName, int frameIndex) {
-    if (spriteSheets.find(sheetName) == spriteSheets.end()) {
+    if (spriteSheetInfo.find(sheetName) == spriteSheetInfo.end()) {
         std::cerr << "Sprite sheet not found: " << sheetName << std::endl;
         return { 0, 0, 0, 0 };
     }
     
-    const auto& sheet = spriteSheets[sheetName];
-    int column = frameIndex % sheet.columns;
-    int row = frameIndex / sheet.columns;
+    auto& info = spriteSheetInfo[sheetName];
+    Texture2D texture = textures[sheetName];
+    
+    int framesPerRow = texture.width / info.first;
+    int row = frameIndex / framesPerRow;
+    int col = frameIndex % framesPerRow;
     
     return { 
-        static_cast<float>(column * sheet.frameWidth), 
-        static_cast<float>(row * sheet.frameHeight),
-        static_cast<float>(sheet.frameWidth), 
-        static_cast<float>(sheet.frameHeight) 
+        static_cast<float>(col * info.first), 
+        static_cast<float>(row * info.second), 
+        static_cast<float>(info.first), 
+        static_cast<float>(info.second) 
     };
 }
 
 Texture2D AssetManager::GetSpriteSheet(const std::string& name) {
-    if (spriteSheets.find(name) == spriteSheets.end()) {
-        std::cerr << "Sprite sheet not found: " << name << std::endl;
-        return { 0 }; // Return empty texture
-    }
-    return spriteSheets[name].texture;
+    return GetTexture(name);
 }
 
+// Sound management
 void AssetManager::LoadSound(const std::string& name, const std::string& filePath) {
+    if (sounds.find(name) != sounds.end()) {
+        ::UnloadSound(sounds[name]);
+    }
     sounds[name] = ::LoadSound(filePath.c_str());
 }
 
 Sound AssetManager::GetSound(const std::string& name) {
-    if (!HasSound(name)) {
-        std::cerr << "Sound not found: " << name << std::endl;
-        return { 0 }; // Return empty sound
+    if (sounds.find(name) != sounds.end()) {
+        return sounds[name];
     }
-    return sounds[name];
+    std::cerr << "Sound not found: " << name << std::endl;
+    return { 0 };
 }
 
 bool AssetManager::HasSound(const std::string& name) const {
     return sounds.find(name) != sounds.end();
 }
 
+// Font management
 void AssetManager::LoadFont(const std::string& name, const std::string& filePath) {
+    if (fonts.find(name) != fonts.end()) {
+        ::UnloadFont(fonts[name]);
+    }
     fonts[name] = ::LoadFont(filePath.c_str());
 }
 
 Font AssetManager::GetFont(const std::string& name) {
-    if (!HasFont(name)) {
-        std::cerr << "Font not found: " << name << std::endl;
-        return GetFontDefault(); // Return default font
+    if (fonts.find(name) != fonts.end()) {
+        return fonts[name];
     }
-    return fonts[name];
+    std::cerr << "Font not found: " << name << std::endl;
+    return GetFontDefault();
 }
 
 bool AssetManager::HasFont(const std::string& name) const {
     return fonts.find(name) != fonts.end();
 }
 
+// Level data management
 void AssetManager::LoadLevelData(const std::string& name, const std::string& filePath) {
-    std::ifstream file(filePath, std::ios::binary);
-    if (!file) {
-        std::cerr << "Failed to open level file: " << filePath << std::endl;
-        return;
+    // Load binary level data
+    unsigned int size = 0;
+    unsigned char* data = LoadFileData(filePath.c_str(), &size);
+    
+    if (data && size > 0) {
+        levelData[name] = std::vector<uint8_t>(data, data + size);
+        UnloadFileData(data);
+    } else {
+        std::cerr << "Failed to load level data: " << filePath << std::endl;
     }
-    
-    // Get file size
-    file.seekg(0, std::ios::end);
-    size_t fileSize = file.tellg();
-    file.seekg(0, std::ios::beg);
-    
-    // Read file content
-    std::vector<uint8_t> data(fileSize);
-    file.read(reinterpret_cast<char*>(data.data()), fileSize);
-    
-    levelData[name] = std::move(data);
 }
 
 const std::vector<uint8_t>& AssetManager::GetLevelData(const std::string& name) {
     static std::vector<uint8_t> emptyData;
-    if (levelData.find(name) == levelData.end()) {
-        std::cerr << "Level data not found: " << name << std::endl;
-        return emptyData;
+    if (levelData.find(name) != levelData.end()) {
+        return levelData[name];
     }
-    return levelData[name];
+    std::cerr << "Level data not found: " << name << std::endl;
+    return emptyData;
 }
 
-void AssetManager::LoadGameAssets() {
-    // Load textures
-    LoadTexture("player", "resources/textures/player.png");
-    LoadTexture("tiles", "resources/textures/tiles.png");
-    LoadTexture("ui", "resources/textures/ui.png");
+// Batch loading
+void AssetManager::LoadTextures() {
+    // Load textures for Diamond Rush
+    LoadTexture("player", "resources/textures/player_sheet.svg");
+    LoadSpriteSheet("player_sheet", "resources/textures/player_sheet.svg", 32, 32);
     
-    // Load sprite sheets
-    LoadSpriteSheet("player_sheet", "resources/textures/player_sheet.png", 32, 32);
-    LoadSpriteSheet("diamond_sheet", "resources/textures/diamond_sheet.png", 16, 16);
+    LoadTexture("tiles", "resources/textures/tiles.svg");
+    LoadSpriteSheet("tiles_sheet", "resources/textures/tiles.svg", 16, 16);
     
-    // Load sounds
+    LoadTexture("diamond", "resources/textures/diamond_sheet.svg");
+    LoadSpriteSheet("diamond_sheet", "resources/textures/diamond_sheet.svg", 16, 16);
+    
+    // Additional textures for UI, menus, etc.
+    // These would be created based on the original game assets
+}
+
+void AssetManager::LoadSounds() {
+    // Load sounds for Diamond Rush
     LoadSound("diamond_collect", "resources/sounds/diamond_collect.wav");
     LoadSound("level_complete", "resources/sounds/level_complete.wav");
-    
-    // Load fonts
+}
+
+void AssetManager::LoadFonts() {
+    // Load fonts for Diamond Rush
     LoadFont("main_font", "resources/fonts/main_font.ttf");
-    
-    // Load level data
+}
+
+void AssetManager::LoadLevels() {
+    // Load level data for Diamond Rush
     for (int i = 1; i <= 3; i++) {
         LoadLevelData("level" + std::to_string(i), "resources/levels/level" + std::to_string(i) + ".dat");
+    }
+}
+
+// Cleanup
+void AssetManager::UnloadAll() {
+    for (auto& texture : textures) {
+        ::UnloadTexture(texture.second);
+    }
+    textures.clear();
+    spriteSheetInfo.clear();
+    
+    for (auto& sound : sounds) {
+        ::UnloadSound(sound.second);
+    }
+    sounds.clear();
+    
+    for (auto& font : fonts) {
+        ::UnloadFont(font.second);
+    }
+    fonts.clear();
+    
+    levelData.clear();
+}
+
+void AssetManager::UnloadTexture(const std::string& name) {
+    if (textures.find(name) != textures.end()) {
+        ::UnloadTexture(textures[name]);
+        textures.erase(name);
+    }
+}
+
+void AssetManager::UnloadSound(const std::string& name) {
+    if (sounds.find(name) != sounds.end()) {
+        ::UnloadSound(sounds[name]);
+        sounds.erase(name);
+    }
+}
+
+void AssetManager::UnloadFont(const std::string& name) {
+    if (fonts.find(name) != fonts.end()) {
+        ::UnloadFont(fonts[name]);
+        fonts.erase(name);
     }
 }
 

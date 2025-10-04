@@ -3,11 +3,15 @@
 #include "Level.h"
 #include "GameState.h"
 #include "AssetManager.h"
-#include "iostream"
+#include <iostream>
 #include <memory>
 #include <cmath>
 
-Game::Game() : isRunning(false), score(0), collectedDiamonds(0), totalDiamonds(0), lives(3), currentLevelNumber(1) {
+Game::Game() : isRunning(false), isPaused(false), score(0), collectedDiamonds(0), 
+               totalDiamonds(0), lives(3), currentLevelNumber(1), 
+               currentSealPosition(SEAL_POS_ANGKOR), currentSealMoveDirection(SEAL_MOVE_NOOP),
+               sealArrowOffsetX(0), sealArrowOffsetY(0) {
+    Initialize();
 }
 
 Game::~Game() {
@@ -16,35 +20,67 @@ Game::~Game() {
 
 void Game::Initialize() {
     // Initialize raylib window
-    InitWindow(screenWidth, screenHeight, title);
+    InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Diamond Rush");
     SetTargetFPS(60);
     
     // Initialize audio
     InitAudioDevice();
     
     // Load game assets
-    AssetManager::GetInstance().LoadGameAssets();
+    assetManager = std::make_unique<AssetManager>();
+    LoadResources();
     
     // Initialize game objects
-    player = std::make_unique<Player>(screenWidth / 2, screenHeight / 2);
+    player = std::make_unique<Player>(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2);
     
-    // Initialize state manager and set initial state to menu
-    stateManager = std::make_unique<GameStateManager>(this);
-    stateManager->ChangeState(std::make_unique<MenuState>(this));
+    // Initialize level
+    currentLevel = std::make_unique<Level>(currentLevelNumber);
+    
+    // Set player position based on level
+    player->SetPosition(currentLevel->GetPlayerStartPosition().x, currentLevel->GetPlayerStartPosition().y);
+    
+    // Initialize game state and set initial state to menu
+    stateManager = std::make_unique<GameState>(this);
     
     isRunning = true;
 }
 
+void Game::LoadResources() {
+    // Load textures, sounds, and other assets
+    if (assetManager) {
+        assetManager->LoadTextures();
+        assetManager->LoadSounds();
+        assetManager->LoadFonts();
+    }
+}
+
 void Game::Run() {
-    Initialize();
-    
     // Main game loop
     while (!WindowShouldClose() && isRunning) {
-        float deltaTime = GetFrameTime();
+        // Only process input and update if not paused
+        if (!isPaused) {
+            ProcessInput();
+            Update();
+        }
         
-        ProcessInput();
-        Update();
+        // Always render
+        BeginDrawing();
+        ClearBackground(BLACK);
+        
         Render();
+        
+        // Draw pause screen if paused
+        if (isPaused) {
+            DrawRectangle(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, ColorAlpha(BLACK, 0.7f));
+            DrawText("PAUSED", SCREEN_WIDTH/2 - 50, SCREEN_HEIGHT/2 - 10, 20, WHITE);
+        }
+        
+        EndDrawing();
+        
+        // Toggle pause with P key
+        if (IsKeyPressed(KEY_P)) {
+            isPaused = !isPaused;
+        }
     }
     
     Shutdown();

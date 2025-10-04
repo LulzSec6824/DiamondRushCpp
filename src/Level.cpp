@@ -5,7 +5,7 @@
 #include <fstream>
 #include <sstream>
 
-Level::Level(int levelNumber) : levelNumber(levelNumber), exitReached(false) {
+Level::Level(int levelNumber) : levelNumber(levelNumber), exitReached(false), width(20), height(15) {
     LoadLevel(levelNumber);
 }
 
@@ -15,41 +15,148 @@ void Level::LoadLevel(int levelNumber) {
     // Clear existing level data
     tiles.clear();
     diamonds.clear();
-    enemies.clear();
     
     // Try to load level data from file
     std::string levelFile = "level_" + std::to_string(levelNumber) + ".txt";
     
-    // Check if AssetManager has the level data
-    if (AssetManager::GetInstance().HasLevelData(levelFile)) {
-        std::string levelData = AssetManager::GetInstance().GetLevelData(levelFile);
-        LoadFromString(levelData);
-        return;
-    }
-    
-    // If no level file exists, create a test level based on the level number
-    CreateTestLevel(levelNumber);
+    // For now, create a test level
+    CreateTestLevel();
 }
 
-void Level::LoadFromString(const std::string& levelData) {
-    std::istringstream stream(levelData);
-    std::string line;
-    int y = 0;
+void Level::CreateTestLevel() {
+    // Set dimensions for test level
+    width = 20;
+    height = 15;
     
-    while (std::getline(stream, line)) {
-        for (size_t x = 0; x < line.length(); x++) {
-            char tile = line[x];
+    // Initialize tiles with empty spaces
+    tiles.resize(width * height, TileType::EMPTY);
+    
+    // Create walls around the perimeter
+    for (int x = 0; x < width; x++) {
+        SetTileAt(x, 0, TileType::WALL);
+        SetTileAt(x, height-1, TileType::WALL);
+    }
+    
+    for (int y = 0; y < height; y++) {
+        SetTileAt(0, y, TileType::WALL);
+        SetTileAt(width-1, y, TileType::WALL);
+    }
+    
+    // Add some dirt and platforms
+    for (int x = 2; x < width-2; x++) {
+        SetTileAt(x, height-3, TileType::DIRT);
+    }
+    
+    // Add some diamonds
+    diamonds.push_back(std::make_unique<Diamond>(5 * TILE_SIZE, 10 * TILE_SIZE));
+    diamonds.push_back(std::make_unique<Diamond>(10 * TILE_SIZE, 10 * TILE_SIZE));
+    diamonds.push_back(std::make_unique<Diamond>(15 * TILE_SIZE, 10 * TILE_SIZE));
+    
+    // Set player start position
+    playerStartPosition = {TILE_SIZE * 2, TILE_SIZE * 10};
+    
+    // Set exit position
+    exitPosition = {TILE_SIZE * (width-3), TILE_SIZE * (height-4)};
+    SetTileAt(width-3, height-4, TileType::EXIT);
+                    }
+
+TileType Level::GetTileAt(int x, int y) const {
+    if (x < 0 || x >= width || y < 0 || y >= height) {
+        return TileType::WALL; // Out of bounds is treated as wall
+    }
+    return tiles[y * width + x];
+}
+
+void Level::SetTileAt(int x, int y, TileType type) {
+    if (x < 0 || x >= width || y < 0 || y >= height) {
+        return; // Out of bounds
+    }
+    tiles[y * width + x] = type;
+}
+
+void Level::BreakTile(int x, int y) {
+    if (GetTileAt(x, y) == TileType::BREAKABLE || GetTileAt(x, y) == TileType::DIRT) {
+        SetTileAt(x, y, TileType::EMPTY);
+    }
+}
+
+void Level::Update() {
+    // Update all diamonds
+    for (auto& diamond : diamonds) {
+        diamond->Update();
+    }
+}
+
+void Level::Draw() {
+    // Draw tiles
+    for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+            TileType tile = GetTileAt(x, y);
             float posX = x * TILE_SIZE;
             float posY = y * TILE_SIZE;
             
+            Color color;
             switch (tile) {
-                case '#': // Wall
-                    tiles.push_back(std::make_unique<Tile>(posX, posY, TileType::WALL));
+                case TileType::WALL:
+                    color = DARKGRAY;
                     break;
-                case '=': // Floor
-                    tiles.push_back(std::make_unique<Tile>(posX, posY, TileType::FLOOR));
+                case TileType::DIRT:
+                    color = BROWN;
                     break;
-                case 'D': // Diamond
+                case TileType::LADDER:
+                    color = ORANGE;
+                    break;
+                case TileType::SPIKES:
+                    color = RED;
+                    break;
+                case TileType::EXIT:
+                    color = GREEN;
+                    break;
+                case TileType::ROCK:
+                    color = GRAY;
+                    break;
+                case TileType::BREAKABLE:
+                    color = BEIGE;
+                    break;
+                default:
+                    continue; // Skip empty tiles
+            }
+            
+            DrawRectangle(posX, posY, TILE_SIZE, TILE_SIZE, color);
+        }
+    }
+    
+    // Draw diamonds
+    for (auto& diamond : diamonds) {
+        diamond->Draw();
+    }
+}
+
+void Level::CheckCollisions(Player& player) {
+    // Check diamond collisions
+    for (auto& diamond : diamonds) {
+        if (!diamond->IsCollected() && CheckCollisionRecs(player.GetBounds(), diamond->GetBounds())) {
+            diamond->Collect();
+            player.CollectDiamond();
+        }
+    }
+    
+    // Check exit collision
+    Rectangle exitRect = {exitPosition.x, exitPosition.y, TILE_SIZE, TILE_SIZE};
+    if (CheckCollisionRecs(player.GetBounds(), exitRect) && GetRemainingDiamonds() == 0) {
+        exitReached = true;
+    }
+}
+
+int Level::GetRemainingDiamonds() const {
+    int count = 0;
+    for (const auto& diamond : diamonds) {
+        if (!diamond->IsCollected()) {
+            count++;
+        }
+    }
+    return count;
+}
                     diamonds.push_back(std::make_unique<Diamond>(posX, posY));
                     break;
                 case 'E': // Enemy

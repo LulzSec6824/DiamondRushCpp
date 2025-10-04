@@ -1,22 +1,25 @@
 #pragma once
 
-#include "GameObject.h"
+#include "raylib.h"
 
-class Diamond : public GameObject {
+class Diamond {
 public:
     Diamond(float x, float y);
     ~Diamond() = default;
     
-    void Update(float deltaTime) override;
-    void Draw() override;
+    void Update();
+    void Draw();
     
     bool IsCollected() const { return collected; }
     void Collect() { collected = true; }
-    Rectangle GetBounds() const override { return collider; }
+    Rectangle GetBounds() const { return collider; }
+    Vector2 GetPosition() const { return position; }
     
 private:
+    Vector2 position;
     bool collected;
     Rectangle collider;
     float animTime;
     int currentFrame;
+    float sparkleTime;
 };

@@ -1,41 +1,54 @@
 #include "Diamond.h"
+#include "AssetManager.h"
 #include <cmath> // For sinf
 
-Diamond::Diamond(float x, float y) 
-    : GameObject(x, y), collected(false), animTime(0) {
-    
-    // Set up collider
-    collider = { x, y, 24, 24 };
+Diamond::Diamond(float x, float y) {
+    position = {x, y};
+    collected = false;
+    collider = { x, y, 16, 16 };
+    animTime = 0;
+    currentFrame = 0;
+    sparkleTime = 0;
 }
 
-void Diamond::Update(float deltaTime) {
+void Diamond::Update() {
     if (!collected) {
         // Simple animation
-        animTime += deltaTime;
+        animTime += GetFrameTime();
         
-        // Update animation frame
-        currentFrame = static_cast<int>((animTime * 8.0f)) % 4;
+        // Update animation frame (4 frames of animation)
+        if (animTime > 0.1f) {
+            currentFrame = (currentFrame + 1) % 4;
+            animTime = 0;
+        }
+        
+        // Sparkle effect timer
+        sparkleTime += GetFrameTime();
+        if (sparkleTime > 1.0f) {
+            sparkleTime = 0;
+        }
     }
 }
 
 void Diamond::Draw() {
     if (!collected) {
-        // Pulsing animation effect
-        float scale = 1.0f + 0.2f * sinf(animTime * 5.0f);
+        // Draw diamond with animation
+        Color tint = WHITE;
         
-        // Draw diamond as a rotated rectangle to simulate a rhombus
+        // Pulsing effect
+        float scale = 1.0f + 0.1f * sinf(GetTime() * 5.0f);
+        
+        // Draw diamond as a blue rhombus
         DrawRectanglePro(
-            {position.x + 12, position.y + 12, 24 * scale, 24 * scale}, // Rectangle
-            {12 * scale, 12 * scale}, // Origin (center of the rectangle)
-            45.0f, // Rotation in degrees
+            {position.x + 8, position.y + 8, 16 * scale, 16 * scale}, // Rectangle
+            {8 * scale, 8 * scale}, // Origin (center)
+            45.0f, // Rotation to make a diamond shape
             SKYBLUE
         );
         
-        // Draw outline as a rotated rectangle
-        DrawRectangleLinesEx(
-            {position.x + 12 - (12 * scale), position.y + 12 - (12 * scale), 24 * scale, 24 * scale}, // Rectangle
-            1, // Line thickness
-            DARKBLUE
-        );
+        // Draw sparkle effect periodically
+        if (sparkleTime > 0.7f) {
+            DrawCircle(position.x + 8, position.y + 8, 3, WHITE);
+        }
     }
 }

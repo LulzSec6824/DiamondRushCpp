@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../raylib/src/raylib.h"
+#include "raylib.h"
 #include <memory>
 
 // Forward declarations
@@ -9,13 +9,13 @@ class Game;
 // Base GameState class
 class GameState {
 public:
-    GameState(Game* game) : game(game) {}
+    explicit GameState(Game* game) : game(game) {}
     virtual ~GameState() = default;
     
     virtual void Enter() = 0;
     virtual void Exit() = 0;
     virtual void ProcessInput() = 0;
-    virtual void Update(float deltaTime) = 0;
+    virtual void Update() = 0;
     virtual void Render() = 0;
     
 protected:
@@ -25,11 +25,11 @@ protected:
 // Menu State
 class MenuState : public GameState {
 public:
-    MenuState(Game* game);
+    explicit MenuState(Game* game);
     void Enter() override;
     void Exit() override;
     void ProcessInput() override;
-    void Update(float deltaTime) override;
+    void Update(float deltaTime);
     void Render() override;
     
 private:
@@ -41,11 +41,11 @@ private:
 // Gameplay State
 class GameplayState : public GameState {
 public:
-    GameplayState(Game* game);
+    explicit GameplayState(Game* game);
     void Enter() override;
     void Exit() override;
     void ProcessInput() override;
-    void Update(float deltaTime) override;
+    void Update(float deltaTime);
     void Render() override;
     
     void LoadLevel(int levelNumber);
@@ -60,11 +60,11 @@ private:
 // Game Over State
 class GameOverState : public GameState {
 public:
-    GameOverState(Game* game);
+    explicit GameOverState(Game* game);
     void Enter() override;
     void Exit() override;
     void ProcessInput() override;
-    void Update(float deltaTime) override;
+    void Update(float deltaTime);
     void Render() override;
     
 private:
@@ -75,7 +75,7 @@ private:
 // State Manager
 class GameStateManager {
 public:
-    GameStateManager(Game* game);
+    explicit GameStateManager(Game* game);
     
     void ChangeState(std::unique_ptr<GameState> newState);
     void ProcessInput();

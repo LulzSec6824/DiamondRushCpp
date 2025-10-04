@@ -3,51 +3,149 @@
 #include <iostream>
 
 Player::Player(float x, float y) 
-    : GameObject(x, y), 
+    : position({x, y}),
       velocity({0, 0}), 
-      speed(4.0f), 
-      jumpForce(10.0f), 
-      isGrounded(false),
+      speed(2.0f), 
       state(State::IDLE),
-      facingRight(true),
-      frameTime(0),
+      direction(Direction::DOWN),
       currentFrame(0),
-      frameCount(4),
-      diamondCollected(false),
-      invincibleTime(0),
-      isInvincible(false),
-      health(3) {
+      frameTime(0.1f),
+      frameCounter(0),
+      diamondCount(0),
+      lives(3) {
     
     // Initialize player collider
-    collider = { position.x, position.y, 32, 48 };
+    UpdateCollider();
+}
+
+void Player::UpdateCollider() {
+    collider = { position.x, position.y, 16, 16 };
 }
 
 void Player::Reset(float x, float y) {
     position.x = x;
     position.y = y;
     velocity = {0, 0};
-    isGrounded = false;
     state = State::IDLE;
-    facingRight = true;
-    frameTime = 0;
+    direction = Direction::DOWN;
+    frameCounter = 0;
     currentFrame = 0;
-    diamondCollected = false;
-    invincibleTime = 0;
-    isInvincible = false;
-    health = 3;
+    UpdateCollider();
 }
 
-void Player::ProcessInput() {
-    // Reset horizontal velocity
-    velocity.x = 0;
+void Player::HandleInput() {
+    // Reset velocity
+    velocity = {0, 0};
     
-    // Horizontal movement
+    // Only process input if not trapped or in special state
+    if (state == State::TRAPPED) return;
+    
+    // Movement controls
     if (IsKeyDown(KEY_LEFT) || IsKeyDown(KEY_A)) {
         velocity.x = -speed;
-        facingRight = false;
+        direction = Direction::LEFT;
         state = State::WALKING;
     }
     else if (IsKeyDown(KEY_RIGHT) || IsKeyDown(KEY_D)) {
+        velocity.x = speed;
+        direction = Direction::RIGHT;
+        state = State::WALKING;
+    }
+    else if (IsKeyDown(KEY_UP) || IsKeyDown(KEY_W)) {
+        velocity.y = -speed;
+        direction = Direction::UP;
+        state = State::WALKING;
+    }
+    else if (IsKeyDown(KEY_DOWN) || IsKeyDown(KEY_S)) {
+        velocity.y = speed;
+        direction = Direction::DOWN;
+        state = State::WALKING;
+    }
+    else {
+        state = State::IDLE;
+    }
+}
+
+void Player::Update() {
+    // Update position based on velocity
+    position.x += velocity.x;
+    position.y += velocity.y;
+    
+    // Update collider
+    UpdateCollider();
+    
+    // Update animation
+    if (state == State::WALKING) {
+        frameCounter += GetFrameTime();
+        if (frameCounter >= frameTime) {
+            currentFrame = (currentFrame + 1) % 4; // 4 frames of animation
+            frameCounter = 0;
+        }
+    }
+    else {
+        currentFrame = 0; // Reset to idle frame
+    }
+}
+
+void Player::Draw() {
+    // Draw player based on direction and state
+    Color tint = WHITE;
+    
+    // Simple colored rectangle for now
+    DrawRectangle(position.x, position.y, 16, 16, BLUE);
+    
+    // Draw direction indicator
+    switch (direction) {
+        case Direction::UP:
+            DrawTriangle(
+                {position.x + 8, position.y}, 
+                {position.x, position.y + 8}, 
+                {position.x + 16, position.y + 8}, 
+                RED);
+            break;
+        case Direction::RIGHT:
+            DrawTriangle(
+                {position.x + 16, position.y + 8}, 
+                {position.x + 8, position.y}, 
+                {position.x + 8, position.y + 16}, 
+                RED);
+            break;
+        case Direction::DOWN:
+            DrawTriangle(
+                {position.x + 8, position.y + 16}, 
+                {position.x, position.y + 8}, 
+                {position.x + 16, position.y + 8}, 
+                RED);
+            break;
+        case Direction::LEFT:
+            DrawTriangle(
+                {position.x, position.y + 8}, 
+                {position.x + 8, position.y}, 
+                {position.x + 8, position.y + 16}, 
+                RED);
+            break;
+    }
+}
+
+void Player::CollectDiamond() {
+    diamondCount++;
+}
+
+void Player::TakeDamage() {
+    lives--;
+    if (lives <= 0) {
+        Die();
+    }
+}
+
+void Player::Die() {
+    state = State::TRAPPED;
+}
+
+void Player::Respawn() {
+    lives = 3;
+    state = State::IDLE;
+}
         velocity.x = speed;
         facingRight = true;
         state = State::WALKING;

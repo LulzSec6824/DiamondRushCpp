@@ -10,7 +10,8 @@
 
 class AssetManager {
 public:
-    static AssetManager& GetInstance();
+    AssetManager();
+    ~AssetManager();
     
     // Texture management
     void LoadTexture(const std::string& name, const std::string& filePath);
@@ -37,34 +38,20 @@ public:
     const std::vector<uint8_t>& GetLevelData(const std::string& name);
     
     // Batch loading
-    void LoadGameAssets();
+    void LoadTextures();
+    void LoadSounds();
+    void LoadFonts();
+    void LoadLevels();
     
     // Cleanup
     void UnloadAll();
     void UnloadTexture(const std::string& name);
     void UnloadSound(const std::string& name);
     void UnloadFont(const std::string& name);
-    
+
 private:
-    AssetManager() = default;
-    ~AssetManager();
-    
-    // Delete copy and move constructors and assign operators
-    AssetManager(const AssetManager&) = delete;
-    AssetManager& operator=(const AssetManager&) = delete;
-    AssetManager(AssetManager&&) = delete;
-    AssetManager& operator=(AssetManager&&) = delete;
-    
-    struct SpriteSheetInfo {
-        Texture2D texture;
-        int frameWidth;
-        int frameHeight;
-        int columns;
-        int rows;
-    };
-    
     std::unordered_map<std::string, Texture2D> textures;
-    std::unordered_map<std::string, SpriteSheetInfo> spriteSheets;
+    std::unordered_map<std::string, std::pair<int, int>> spriteSheetInfo;
     std::unordered_map<std::string, Sound> sounds;
     std::unordered_map<std::string, Font> fonts;
     std::unordered_map<std::string, std::vector<uint8_t>> levelData;
