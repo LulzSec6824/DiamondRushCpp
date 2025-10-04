@@ -1,0 +1,23 @@
+<svg width="128" height="32" xmlns="http://www.w3.org/2000/svg">
+  <!-- Empty tile -->
+  <rect x="0" y="0" width="32" height="32" fill="none" stroke="#333" stroke-width="1" stroke-dasharray="2"/>
+  
+  <!-- Wall tile -->
+  <rect x="32" y="0" width="32" height="32" fill="#555" stroke="#333" stroke-width="1"/>
+  <rect x="36" y="4" width="8" height="8" fill="#777"/>
+  <rect x="52" y="4" width="8" height="8" fill="#777"/>
+  <rect x="36" y="20" width="8" height="8" fill="#777"/>
+  <rect x="52" y="20" width="8" height="8" fill="#777"/>
+  
+  <!-- Floor tile -->
+  <rect x="64" y="0" width="32" height="32" fill="#999" stroke="#777" stroke-width="1"/>
+  <line x1="64" y1="8" x2="96" y2="8" stroke="#888" stroke-width="1"/>
+  <line x1="64" y1="16" x2="96" y2="16" stroke="#888" stroke-width="1"/>
+  <line x1="64" y1="24" x2="96" y2="24" stroke="#888" stroke-width="1"/>
+  
+  <!-- Spikes tile -->
+  <rect x="96" y="0" width="32" height="32" fill="#999" stroke="#777" stroke-width="1"/>
+  <polygon points="100,24 104,16 108,24" fill="#f00" stroke="#900" stroke-width="1"/>
+  <polygon points="112,24 116,16 120,24" fill="#f00" stroke="#900" stroke-width="1"/>
+  <polygon points="124,24 128,16 132,24" fill="#f00" stroke="#900" stroke-width="1"/>
+</svg>

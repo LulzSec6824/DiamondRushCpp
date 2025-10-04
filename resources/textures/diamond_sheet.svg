@@ -1,0 +1,17 @@
+<svg width="64" height="16" xmlns="http://www.w3.org/2000/svg">
+  <!-- Frame 1 -->
+  <rect x="0" y="0" width="16" height="16" fill="none" stroke="none"/>
+  <polygon points="8,2 14,8 8,14 2,8" fill="#00bfff" stroke="#0066cc" stroke-width="1"/>
+  
+  <!-- Frame 2 -->
+  <rect x="16" y="0" width="16" height="16" fill="none" stroke="none"/>
+  <polygon points="24,1 30,8 24,15 18,8" fill="#00bfff" stroke="#0066cc" stroke-width="1"/>
+  
+  <!-- Frame 3 -->
+  <rect x="32" y="0" width="16" height="16" fill="none" stroke="none"/>
+  <polygon points="40,2 46,8 40,14 34,8" fill="#00bfff" stroke="#0066cc" stroke-width="1"/>
+  
+  <!-- Frame 4 -->
+  <rect x="48" y="0" width="16" height="16" fill="none" stroke="none"/>
+  <polygon points="56,3 62,8 56,13 50,8" fill="#00bfff" stroke="#0066cc" stroke-width="1"/>
+</svg>
